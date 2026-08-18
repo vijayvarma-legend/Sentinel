@@ -5,6 +5,55 @@ Newest first. Decisions substantial enough to constrain future work get an ADR a
 
 ---
 
+## 2026-08-19 — Session 2: Phase 0 complete
+
+**Goal:** close out project setup and make DoD-9 a build failure rather than a promise.
+
+### Done
+
+- Installed `uv`; `pyproject.toml` + committed `uv.lock`. Ruff, mypy strict, pytest, import-linter wired.
+- Package skeleton: 16 modules under `src/sentinel/`, one per registry service, each declaring its own
+  `SERVICE_ID` and `TRUST_CLASS` in its docstring and module metadata.
+- `docker-compose.yml`: PostgreSQL 17, Redis 7, MinIO. All three verified healthy and reachable
+  (`select version()`, `PING`, bucket created over the S3 API).
+- `Makefile` with `setup / up / down / fmt / lint / types / test / check`.
+- **[`tests/architecture/test_trust_boundaries.py`](../tests/architecture/test_trust_boundaries.py)** —
+  the enforcement of [ADR-0004](decisions/0004-trust-classes.md). 14 tests. It walks the import graph by
+  parsing source (so it holds even for unimportable modules) and cross-checks with import-linter over
+  the real graph.
+- `make check` green: ruff clean, mypy strict clean on 17 files, 14/14 tests.
+
+### Worth remembering
+
+- **Port collision.** This machine already runs a `kinnred` project on 5433 / 6380 / 9000-9001, plus a
+  local PostgreSQL 17. Sentinel moved to **5434 / 6381 / 9010-9011**. Those containers were left alone.
+- **The guard had a real bug, found by testing the test.** The first version passed against a deliberately
+  injected violation: the AST walk recorded `node.module` for `ImportFrom`, so `from sentinel import erp`
+  registered as an import of `sentinel`, not of `sentinel.erp` — invisible. Fixed by also recording
+  `f"{module}.{alias}"` for every alias. Re-verified against three violation shapes: 2-hop transitive
+  (`reasoning → graph → erp`), direct dotted (`extraction → sentinel.db`), and control-imports-llm
+  (`policy → reasoning`). All three now fail loudly with the offending path printed.
+  *A safety test that has never been seen to fail is not evidence of safety.*
+- Non-obvious spec detail now pinned in the SVC-30 contract: price variance is computed against the
+  **accepted** quantity, not the billed quantity (spec §15).
+
+### Decisions taken
+
+[ADR-0006](decisions/0006-v1-boundaries.md) — v1 takes API + upload ingestion only, MinIO for object
+storage, and defers the vision-model choice behind a fixture-backed extractor so the deterministic core
+is fully testable without an API key. Q-3 and Q-4 resolved; Q-1 deliberately left open until Phase 2.
+
+### Next session — Phase 1 Foundation
+
+1. `sentinel.core`: money as `Decimal`, correlation IDs, error taxonomy, settings, the document/PO/GRN/
+   invoice domain models.
+2. `sentinel.db`: schema + Alembic migrations for PO, GRN, invoice, contract, vendor, policy, audit.
+3. `sentinel.storage`: content-addressed S3 store, immutable writes.
+4. `sentinel.ingestion`: API + upload, hashing, correlation ID minting, dead-letter path.
+5. Seed the golden-path fixture (PO 9901 / GRN 9 units / INV-8821) — every later phase tests against it.
+
+---
+
 ## 2026-08-19 — Session 1: Project inception
 
 **Goal:** turn the architecture PDF into a tracked, buildable project.

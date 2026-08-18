@@ -20,5 +20,6 @@ a `Superseded by ADR-XXXX` line to the old one's status. The record of having be
 | [0003](0003-modular-monolith.md) | Modular monolith, not microservices | accepted | 2026-08-19 |
 | [0004](0004-trust-classes.md) | Trust classes, structurally enforced | accepted | 2026-08-19 |
 | [0005](0005-pipeline-stage-ordering.md) | Risk scoring runs before exception reasoning | accepted | 2026-08-19 |
+| [0006](0006-v1-boundaries.md) | v1 boundaries: ingestion sources, object storage, deferred vision model | accepted | 2026-08-19 |
 
 Template: [`template.md`](template.md)
