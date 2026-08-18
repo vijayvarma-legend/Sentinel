@@ -16,6 +16,7 @@ on its own?*
 | `control` | Enforces a gate (policy, authz, idempotency). Must be deterministic and must not be bypassable. |
 | `human` | A person's authenticated decision. |
 | `observability` | Records or measures. No effect on the decision path. |
+| `composition` | The wiring layer. May depend on everything; decides nothing ([ADR-0008](decisions/0008-composition-root-trust-class.md)). Exactly one module. |
 
 ---
 
@@ -24,16 +25,17 @@ on its own?*
 | ID | Service | Module | Trust | Status | Responsibility |
 | --- | --- | --- | --- | --- | --- |
 | SVC-00 | Core domain | `sentinel.core` | `deterministic` | **built** | Pydantic models, money type, correlation IDs, error taxonomy, settings |
-| SVC-01 | Persistence | `sentinel.db` | `deterministic` | in-progress | PostgreSQL schema, migrations, repositories, least-privilege roles |
+| SVC-01 | Persistence | `sentinel.db` | `deterministic` | **built** | PostgreSQL schema, migrations, repositories, least-privilege roles |
 | SVC-02 | Document store | `sentinel.storage` | `deterministic` | **built** | Original document bytes, content-addressed, immutable |
 | SVC-03 | Orchestrator | `sentinel.graph` | `deterministic` | planned | LangGraph pipeline, state, checkpointing, retries, dead-letter |
 | SVC-04 | AuthN/AuthZ | `sentinel.auth` | `control` | planned | RBAC: ap_operator, ap_manager, finance_admin, system |
+| SVC-05 | HTTP API | `sentinel.api` | `composition` | **built** | FastAPI transport + the composition root |
 
 ## Pipeline services
 
 | ID | Service | Module | Trust | Status | Spec |
 | --- | --- | --- | --- | --- | --- |
-| SVC-10 | Invoice Ingestion | `sentinel.ingestion` | `deterministic` | planned | §4.1 |
+| SVC-10 | Invoice Ingestion | `sentinel.ingestion` | `deterministic` | **built** | §4.1 |
 | SVC-20 | Vision Extraction | `sentinel.extraction` | `llm` | planned | §4.2 |
 | SVC-30 | Validation Engine | `sentinel.validation` | `deterministic` | planned | §4.3, §5 |
 | SVC-40 | Duplicate Detection | `sentinel.duplicates` | `deterministic` | planned | §6 |
@@ -196,6 +198,32 @@ what a finding may cite, making grounding testable.
 
 **Golden-path fixture:** `tests/golden.py` holds the spec §15 scenario (PO 9901 / GRN 9
 accepted / INV-8821) in one place. Every phase from validation onward tests against it.
+
+### SVC-10 `sentinel.ingestion` — the front door · `deterministic` · **built**, 22 tests
+
+Sniffs the leading bytes rather than trusting the client's `Content-Type`: an uploader who
+mislabels a `.docx` as `application/pdf` is told so at the door, not two stages later when a
+vision model returns nonsense.
+
+The correlation ID is minted **before** validation, so a rejected document still has an
+identifier the caller can quote and the dead-letter record can be found by. A rejection is
+recorded — dead-letter row + audit event — never silently dropped, and creates no invoice and
+no stored object.
+
+### SVC-05 `sentinel.api` — HTTP + wiring · `composition` · **built**, 19 tests
+
+`POST /invoices` · `GET /invoices/{correlation_id}` · `GET /invoices/{correlation_id}/audit`
+· `GET /health`
+
+An `IngestionError` maps to **422, not 500**: the request was well-formed, the document was
+not, and a 500 would tell an integrator to retry a PDF that is still corrupt on the second
+attempt. Every error response carries the correlation ID.
+
+**Transaction boundary.** The request-scoped session rolls back on any fault — but *commits*
+on `IngestionError`, because that exception reports a decision ingestion has already made and
+recorded. Rolling it back erased the dead-letter row the 422 response points at. Found by
+running the live app; the test suite had substituted the faulty behaviour away. Regression
+test: `tests/api/test_transaction_boundary.py`.
 
 ### SVC-01 `sentinel.db` — the schema · `deterministic` · schema **built**, 14 integration tests
 

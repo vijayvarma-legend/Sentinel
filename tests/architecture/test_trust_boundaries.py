@@ -27,6 +27,7 @@ PKG = SRC / "sentinel"
 
 # The registry, as code. Kept in step with docs/SERVICE_REGISTRY.md by test_registry_matches_code.
 TRUST_CLASSES: dict[str, str] = {
+    "api": "composition",
     "core": "deterministic",
     "db": "deterministic",
     "storage": "deterministic",
@@ -47,6 +48,7 @@ TRUST_CLASSES: dict[str, str] = {
 
 LLM_MODULES = {m for m, t in TRUST_CLASSES.items() if t == "llm"}
 CONTROL_MODULES = {m for m, t in TRUST_CLASSES.items() if t == "control"}
+COMPOSITION_MODULES = {m for m, t in TRUST_CLASSES.items() if t == "composition"}
 
 # Modules an LLM-class module must not be able to reach, directly or transitively.
 # sentinel.erp moves money. sentinel.db is the write path to the financial record.
@@ -168,6 +170,18 @@ def test_financial_modules_import_no_model_sdk(module: str) -> None:
     assert not offenders, (
         f"sentinel.{module} performs deterministic financial work and must not import a "
         f"model SDK:\n" + "\n".join(f"  {o}" for o in sorted(offenders))
+    )
+
+
+def test_there_is_exactly_one_composition_root() -> None:
+    """ADR-0008 exempts the wiring layer from the import rules, so it must stay singular.
+
+    A second `composition` module would be a convenient place to put logic that belongs in
+    a real service -- and it would carry the same exemption with it.
+    """
+    assert {"api"} == COMPOSITION_MODULES, (
+        f"expected exactly one composition root, found {sorted(COMPOSITION_MODULES)}. "
+        "Wiring lives in sentinel.api; anything that decides belongs in a classified service."
     )
 
 

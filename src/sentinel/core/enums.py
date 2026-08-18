@@ -47,6 +47,9 @@ class TrustClass(StrEnum):
     OBSERVABILITY = "observability"
     """Records or measures. No effect on the decision path."""
 
+    COMPOSITION = "composition"
+    """The wiring layer. May depend on everything; decides nothing. See ADR-0008."""
+
 
 class PipelineStage(StrEnum):
     """The stages of the procure-to-pay pipeline, in execution order.

@@ -1,4 +1,9 @@
-"""Database fixtures. Integration only -- these talk to the real PostgreSQL from `make up`.
+"""Shared fixtures.
+
+Database fixtures live here rather than under tests/db/ because every service that writes
+rows -- ingestion, policy, ERP -- needs them, not just the schema tests.
+
+These talk to the real PostgreSQL from `make up`.
 
 Every test runs inside a transaction that is rolled back afterwards, so tests neither see
 each other's rows nor leave any behind. The exception is anything exercising the append-only

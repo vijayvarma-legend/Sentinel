@@ -4,7 +4,7 @@ Live build state. Updated at the end of every working session.
 Companion files: [`SERVICE_REGISTRY.md`](SERVICE_REGISTRY.md) (what each service is),
 [`decisions/`](decisions/) (why we chose it), [`SESSION_LOG.md`](SESSION_LOG.md) (what happened when).
 
-**Current phase:** Phase 1 — Foundation
+**Current phase:** Phase 2 — Extraction
 **Last updated:** 2026-08-19
 
 ---
@@ -14,8 +14,8 @@ Companion files: [`SERVICE_REGISTRY.md`](SERVICE_REGISTRY.md) (what each service
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Project setup: repo, tracking, toolchain, ADR process | 🟢 done |
-| 1 | Foundation: PostgreSQL schema, object storage, ingestion, Pydantic models, correlation IDs | 🟡 in progress |
-| 2 | Extraction: vision extraction, structured output validation, confidence handling | ⚪ not started |
+| 1 | Foundation: PostgreSQL schema, object storage, ingestion, Pydantic models, correlation IDs | 🟢 done |
+| 2 | Extraction: vision extraction, structured output validation, confidence handling | 🟡 next |
 | 3 | Validation: PO/GRN matching, tolerance engine, tax/math validation, contract checks | ⚪ not started |
 | 4 | Risk: duplicate detection, vendor anomaly features, risk scoring | ⚪ not started |
 | 5 | Agent: exception reasoning, evidence-based action plans, LangGraph orchestration | ⚪ not started |
@@ -59,9 +59,13 @@ Legend: ⚪ not started · 🟡 in progress · 🟢 done · 🔴 blocked
 - [x] Golden-path fixture (`tests/golden.py`) — spec §15
 - [x] `sentinel.storage` — content-addressed, immutable document store (verified against MinIO)
 - [x] `sentinel.db` — schema + Alembic migrations, with DB-level enforcement of idempotency, audit immutability, and policy immutability
-- [ ] `sentinel.db` — repositories (domain <-> row mapping)
-- [ ] `sentinel.ingestion` — API + upload, hashing, correlation IDs, dead-letter
-- [ ] FastAPI application wiring
+- [x] `sentinel.db` — repositories (domain <-> row mapping)
+- [x] `sentinel.ingestion` — hashing, correlation IDs, content sniffing, dead-letter
+- [x] FastAPI application wiring (`sentinel.api`, ADR-0008)
+
+**Phase 1 verified:** 248 tests green, ruff + mypy strict clean. The live app was run against
+real PostgreSQL and MinIO end to end — upload, idempotent re-upload, rejection, lookup, audit
+trail — which is how the transaction-boundary bug was found.
 
 ---
 
