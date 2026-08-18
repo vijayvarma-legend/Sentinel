@@ -21,5 +21,6 @@ a `Superseded by ADR-XXXX` line to the old one's status. The record of having be
 | [0004](0004-trust-classes.md) | Trust classes, structurally enforced | accepted | 2026-08-19 |
 | [0005](0005-pipeline-stage-ordering.md) | Risk scoring runs before exception reasoning | accepted | 2026-08-19 |
 | [0006](0006-v1-boundaries.md) | v1 boundaries: ingestion sources, object storage, deferred vision model | accepted | 2026-08-19 |
+| [0007](0007-quantity-semantics.md) | Accepted quantity is the basis for matching and price variance | accepted | 2026-08-19 |
 
 Template: [`template.md`](template.md)
