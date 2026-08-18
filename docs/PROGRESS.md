@@ -47,6 +47,23 @@ Legend: ⚪ not started · 🟡 in progress · 🟢 done · 🔴 blocked
 
 ---
 
+## Phase 1 — Foundation
+
+- [x] `sentinel.core.money` — exact, currency-safe amounts
+- [x] `sentinel.core.ids` — typed time-ordered identifiers, document hashes, derived idempotency keys
+- [x] `sentinel.core.errors` — system faults separated from business outcomes
+- [x] `sentinel.core.enums` — the closed pipeline vocabularies
+- [x] `sentinel.core.settings` — startup-validated configuration
+- [x] `sentinel.core.business` — PO, GRN, contract, vendor profile (spec §3)
+- [x] `sentinel.core.evidence` — every inter-service contract
+- [x] Golden-path fixture (`tests/golden.py`) — spec §15
+- [ ] `sentinel.storage` — content-addressed, immutable document store
+- [ ] `sentinel.db` — schema, migrations, repositories
+- [ ] `sentinel.ingestion` — API + upload, hashing, correlation IDs, dead-letter
+- [ ] FastAPI application wiring
+
+---
+
 ## Definition of Done — acceptance criteria
 
 The nine criteria from spec §18. Each is a real test we must be able to run, not a checkbox we assert.

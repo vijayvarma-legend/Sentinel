@@ -23,7 +23,7 @@ on its own?*
 
 | ID | Service | Module | Trust | Status | Responsibility |
 | --- | --- | --- | --- | --- | --- |
-| SVC-00 | Core domain | `sentinel.core` | `deterministic` | in-progress | Pydantic models, money type, correlation IDs, error taxonomy, settings |
+| SVC-00 | Core domain | `sentinel.core` | `deterministic` | **built** | Pydantic models, money type, correlation IDs, error taxonomy, settings |
 | SVC-01 | Persistence | `sentinel.db` | `deterministic` | planned | PostgreSQL schema, migrations, repositories, least-privilege roles |
 | SVC-02 | Document store | `sentinel.storage` | `deterministic` | planned | Original document bytes, content-addressed, immutable |
 | SVC-03 | Orchestrator | `sentinel.graph` | `deterministic` | planned | LangGraph pipeline, state, checkpointing, retries, dead-letter |
@@ -157,6 +157,45 @@ on its own?*
 ---
 
 ## Built so far
+
+### SVC-00 `sentinel.core` — the domain layer · `deterministic` · **built**, 175 tests
+
+Depends on nothing else in Sentinel (enforced by the architecture test). Everything above it
+is built from these pieces.
+
+| Module | What it guarantees |
+| --- | --- |
+| `money` | Exact, currency-safe amounts. See below. |
+| `ids` | Typed, time-ordered identifiers; SHA-256 document hashes; **derived** idempotency keys |
+| `errors` | System faults, separated from business outcomes |
+| `enums` | The closed vocabularies the pipeline speaks |
+| `settings` | Configuration validated at startup, not mid-invoice |
+| `business` | PO, GRN, contract, vendor profile — the ground-truth documents (spec §3) |
+| `evidence` | Every contract that moves between services |
+
+**Three invariants are enforced by constructors rather than by convention**, which is what
+turns spec prose into something a test can check:
+
+| Type | Refuses to exist when | Spec |
+| --- | --- | --- |
+| `RiskAssessment` | the overall score lies outside the range of its own contributing signals — nothing could explain it | §7 |
+| `ExceptionFinding` | it cites no evidence — indistinguishable from an invented financial fact | §8 |
+| `HumanDecision` | its author is the `SYSTEM` role — that would manufacture the approval mandatory-HITL exists to require | §10 |
+
+Smaller ones worth knowing: a `CheckResult` that fails must carry the numbers that failed it;
+an empty `ValidationScorecard` does **not** pass (a validation outage must not auto-approve);
+a successful `ErpTransactionResult` must name the transaction it created; an absorbed retry is
+distinguishable from a fresh posting.
+
+`ExtractedField[T]` binds a value to its confidence in one object, so a caller cannot read the
+number and forget how sure the model was.
+
+`EvidenceBundle` is what the orchestrator hands the reasoning agent — which has no data access
+of its own — and what the HITL dashboard renders. Its `evidence_ref_ids()` enumerates exactly
+what a finding may cite, making grounding testable.
+
+**Golden-path fixture:** `tests/golden.py` holds the spec §15 scenario (PO 9901 / GRN 9
+accepted / INV-8821) in one place. Every phase from validation onward tests against it.
 
 ### `sentinel.core.money` — the money type · `deterministic`
 
