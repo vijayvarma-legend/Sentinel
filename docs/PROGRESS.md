@@ -58,7 +58,8 @@ Legend: ⚪ not started · 🟡 in progress · 🟢 done · 🔴 blocked
 - [x] `sentinel.core.evidence` — every inter-service contract
 - [x] Golden-path fixture (`tests/golden.py`) — spec §15
 - [x] `sentinel.storage` — content-addressed, immutable document store (verified against MinIO)
-- [ ] `sentinel.db` — schema, migrations, repositories
+- [x] `sentinel.db` — schema + Alembic migrations, with DB-level enforcement of idempotency, audit immutability, and policy immutability
+- [ ] `sentinel.db` — repositories (domain <-> row mapping)
 - [ ] `sentinel.ingestion` — API + upload, hashing, correlation IDs, dead-letter
 - [ ] FastAPI application wiring
 

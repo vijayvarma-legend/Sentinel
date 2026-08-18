@@ -24,7 +24,7 @@ on its own?*
 | ID | Service | Module | Trust | Status | Responsibility |
 | --- | --- | --- | --- | --- | --- |
 | SVC-00 | Core domain | `sentinel.core` | `deterministic` | **built** | Pydantic models, money type, correlation IDs, error taxonomy, settings |
-| SVC-01 | Persistence | `sentinel.db` | `deterministic` | planned | PostgreSQL schema, migrations, repositories, least-privilege roles |
+| SVC-01 | Persistence | `sentinel.db` | `deterministic` | in-progress | PostgreSQL schema, migrations, repositories, least-privilege roles |
 | SVC-02 | Document store | `sentinel.storage` | `deterministic` | **built** | Original document bytes, content-addressed, immutable |
 | SVC-03 | Orchestrator | `sentinel.graph` | `deterministic` | planned | LangGraph pipeline, state, checkpointing, retries, dead-letter |
 | SVC-04 | AuthN/AuthZ | `sentinel.auth` | `control` | planned | RBAC: ap_operator, ap_manager, finance_admin, system |
@@ -196,6 +196,32 @@ what a finding may cite, making grounding testable.
 
 **Golden-path fixture:** `tests/golden.py` holds the spec §15 scenario (PO 9901 / GRN 9
 accepted / INV-8821) in one place. Every phase from validation onward tests against it.
+
+### SVC-01 `sentinel.db` — the schema · `deterministic` · schema **built**, 14 integration tests
+
+Some guarantees are stated in Python and *enforced* here, because a constraint the
+application checks is a constraint two concurrent workers can both pass.
+
+| Guarantee | Mechanism | Verified |
+| --- | --- | --- |
+| **DoD-6** — ERP retries cannot double-post | `UNIQUE` on `erp_transactions.idempotency_key` | ✅ second insert refused |
+| **Spec §12** — the audit log is immutable | trigger raising on `UPDATE`/`DELETE`, binding the app's own role | ✅ both refused |
+| **Spec §9** — a decision is replayable against its rules | trigger: policy rules immutable, `is_active` still mutable | ✅ edit refused, toggle allowed |
+| **ADR-0007** — damaged ⊆ received | `CHECK (damaged_qty <= received_qty)` | ✅ refused |
+| A successful posting names its transaction | `CHECK (NOT succeeded OR erp_transaction_id IS NOT NULL)` | ✅ refused |
+| One correlation ID, one invoice | `UNIQUE` on `invoices.correlation_id` | ✅ refused |
+| **Spec §6** — duplicates are *detected*, not rejected | `(vendor_id, normalized_invoice_number)` indexed but **not** unique | ✅ both rows accepted |
+
+That last row is a deliberate non-constraint. A unique constraint there would turn a
+suspected duplicate into an insert failure — no evidence, no assessment, and nothing for a
+human to review.
+
+Amounts are `NUMERIC(18,2)` beside a currency column; timestamps are `TIMESTAMPTZ`. Model
+outputs (extraction, reasoning) are `JSONB`, since their shape changes with the prompt —
+while every field a decision depends on is recomputed by validation into a typed column.
+
+Migrations: Alembic, `migrations/`. The URL comes from `Settings`, so no credential is
+committed.
 
 ### SVC-02 `sentinel.storage` — the document store · `deterministic` · **built**, 17 tests
 
