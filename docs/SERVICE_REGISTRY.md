@@ -25,7 +25,7 @@ on its own?*
 | --- | --- | --- | --- | --- | --- |
 | SVC-00 | Core domain | `sentinel.core` | `deterministic` | **built** | Pydantic models, money type, correlation IDs, error taxonomy, settings |
 | SVC-01 | Persistence | `sentinel.db` | `deterministic` | planned | PostgreSQL schema, migrations, repositories, least-privilege roles |
-| SVC-02 | Document store | `sentinel.storage` | `deterministic` | planned | Original document bytes, content-addressed, immutable |
+| SVC-02 | Document store | `sentinel.storage` | `deterministic` | **built** | Original document bytes, content-addressed, immutable |
 | SVC-03 | Orchestrator | `sentinel.graph` | `deterministic` | planned | LangGraph pipeline, state, checkpointing, retries, dead-letter |
 | SVC-04 | AuthN/AuthZ | `sentinel.auth` | `control` | planned | RBAC: ap_operator, ap_manager, finance_admin, system |
 
@@ -196,6 +196,24 @@ what a finding may cite, making grounding testable.
 
 **Golden-path fixture:** `tests/golden.py` holds the spec §15 scenario (PO 9901 / GRN 9
 accepted / INV-8821) in one place. Every phase from validation onward tests against it.
+
+### SVC-02 `sentinel.storage` — the document store · `deterministic` · **built**, 17 tests
+
+Content-addressed and write-once. Two properties fall out rather than being maintained:
+
+- **Idempotent ingestion.** A document's key *is* its SHA-256, so re-submitting the same
+  bytes lands on the same key and stores nothing. No bookkeeping to get wrong.
+- **Corruption is detectable.** `get()` re-hashes what it read and compares against the key
+  it was fetched from. Without that check, a truncated object would be handed to extraction
+  and read as though it were the invoice — and the resulting payment would be perfectly
+  auditable and completely wrong.
+
+`InMemoryDocumentStore` implements the identical contract, including read verification, so
+the same test bodies run against both. It ships in the package rather than the test suite
+because the evaluation harness (spec §13) needs to replay a benchmark set without leaving
+debris in a bucket.
+
+Integration tests run the same assertions against real MinIO — `make test-int`.
 
 ### `sentinel.core.money` — the money type · `deterministic`
 

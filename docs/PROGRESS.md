@@ -57,7 +57,7 @@ Legend: ⚪ not started · 🟡 in progress · 🟢 done · 🔴 blocked
 - [x] `sentinel.core.business` — PO, GRN, contract, vendor profile (spec §3)
 - [x] `sentinel.core.evidence` — every inter-service contract
 - [x] Golden-path fixture (`tests/golden.py`) — spec §15
-- [ ] `sentinel.storage` — content-addressed, immutable document store
+- [x] `sentinel.storage` — content-addressed, immutable document store (verified against MinIO)
 - [ ] `sentinel.db` — schema, migrations, repositories
 - [ ] `sentinel.ingestion` — API + upload, hashing, correlation IDs, dead-letter
 - [ ] FastAPI application wiring
