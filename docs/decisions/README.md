@@ -23,5 +23,6 @@ a `Superseded by ADR-XXXX` line to the old one's status. The record of having be
 | [0006](0006-v1-boundaries.md) | v1 boundaries: ingestion sources, object storage, deferred vision model | accepted | 2026-08-19 |
 | [0007](0007-quantity-semantics.md) | Accepted quantity is the basis for matching and price variance | accepted | 2026-08-19 |
 | [0008](0008-composition-root-trust-class.md) | A `composition` trust class for the wiring layer | accepted | 2026-08-19 |
+| [0009](0009-confidence-thresholds.md) | Tiered confidence thresholds, and two bands rather than one | accepted | 2026-08-19 |
 
 Template: [`template.md`](template.md)

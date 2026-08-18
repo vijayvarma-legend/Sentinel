@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 import pytest
 
 from sentinel.core.errors import ConfigurationError
@@ -21,7 +19,7 @@ class TestDefaults:
         settings = build()
         assert settings.env == "local"
         assert settings.extraction_provider == "fixture"
-        assert settings.extraction_min_confidence == Decimal("0.80")
+        assert settings.extraction_confidence_policy == "v1"
         assert not settings.is_production
 
     def test_default_ports_avoid_the_other_project_on_this_machine(self) -> None:
@@ -38,11 +36,6 @@ class TestDefaults:
 
 
 class TestConstraints:
-    @pytest.mark.parametrize("bad", [Decimal("-0.1"), Decimal("1.1")])
-    def test_confidence_threshold_must_be_a_probability(self, bad: Decimal) -> None:
-        with pytest.raises(ValueError):
-            build(extraction_min_confidence=bad)
-
     @pytest.mark.parametrize("bad", [0, -1])
     def test_document_size_ceiling_must_be_positive(self, bad: int) -> None:
         with pytest.raises(ValueError):

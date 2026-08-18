@@ -36,7 +36,7 @@ on its own?*
 | ID | Service | Module | Trust | Status | Spec |
 | --- | --- | --- | --- | --- | --- |
 | SVC-10 | Invoice Ingestion | `sentinel.ingestion` | `deterministic` | **built** | §4.1 |
-| SVC-20 | Vision Extraction | `sentinel.extraction` | `llm` | planned | §4.2 |
+| SVC-20 | Vision Extraction | `sentinel.extraction` | `llm` | in-progress | §4.2 |
 | SVC-30 | Validation Engine | `sentinel.validation` | `deterministic` | planned | §4.3, §5 |
 | SVC-40 | Duplicate Detection | `sentinel.duplicates` | `deterministic` | planned | §6 |
 | SVC-50 | Risk & Fraud Scoring | `sentinel.risk` | `deterministic` | planned | §7 |
@@ -198,6 +198,30 @@ what a finding may cite, making grounding testable.
 
 **Golden-path fixture:** `tests/golden.py` holds the spec §15 scenario (PO 9901 / GRN 9
 accepted / INV-8821) in one place. Every phase from validation onward tests against it.
+
+### SVC-20 `sentinel.extraction` — confidence gating · **built**, 24 tests
+
+The thresholds are tiered by field class, and the ordering is deliberately counter-intuitive:
+
+| Class | Reject below | Review below | Because |
+| --- | --- | --- | --- |
+| Identity (`po_reference`, `invoice_number`, `supplier_name`, `currency`) | 0.85 | **0.98** | nothing downstream catches a misread |
+| Unchecked money (`total_due`, `tax`, `shipping`, `invoice_date`) | 0.85 | 0.95 | no independent counterpart to compare against |
+| Cross-checked money (`billed_qty`, `billed_unit_price`, `line_total`, `subtotal`) | 0.70 | 0.90 | SVC-30 re-derives it; a wrong value fails loudly |
+| Cosmetic (`description`) | — | — | carries no financial meaning |
+
+**Fields under deterministic cross-check get the *lowest* floors.** A misread unit price fails
+the three-way match; a misread PO reference validates cleanly against the *wrong* purchase
+order and the wrong invoice is paid with a perfect audit trail. Scrutiny goes where nothing
+else is watching.
+
+Three outcomes, not two: `reject` (too poor to be evidence — retained for human attention, **not**
+dead-lettered, since the document was fine and our reading of it was not), `review` (proceeds
+but can never auto-process), `accept`.
+
+The policy is versioned (`confidence-v1`) and recorded on the extraction audit event. A test
+asserts every field on `ExtractedInvoice` is classified, so a new field cannot silently default
+to ungated.
 
 ### SVC-10 `sentinel.ingestion` — the front door · `deterministic` · **built**, 22 tests
 

@@ -11,7 +11,6 @@ so nothing secret is ever committed. See ``.env.example``.
 
 from __future__ import annotations
 
-from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
@@ -74,11 +73,13 @@ class Settings(BaseSettings):
         default="fixture",
         description="'fixture' is the deterministic stand-in from ADR-0006; Q-1 is still open.",
     )
-    extraction_min_confidence: Decimal = Field(
-        default=Decimal("0.80"),
-        ge=Decimal(0),
-        le=Decimal(1),
-        description="Below this, a field is not trusted and the payload is rejected (spec §4.2).",
+    extraction_confidence_policy: str = Field(
+        default="v1",
+        description=(
+            "Names a versioned set of per-field-class confidence bands (ADR-0009). A version "
+            "rather than a bare number: the thresholds differ by field, and changing one "
+            "changes whether invoices may be paid without a human, so it must be auditable."
+        ),
     )
     anthropic_api_key: str | None = None
 

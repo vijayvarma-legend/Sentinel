@@ -69,6 +69,16 @@ trail — which is how the transaction-boundary bug was found.
 
 ---
 
+## Phase 2 — Extraction
+
+- [x] Confidence gating: per-field-class bands, reject/review/accept ([ADR-0009](decisions/0009-confidence-thresholds.md))
+- [ ] `Extractor` protocol
+- [ ] Fixture-backed extractor (deterministic, no API key)
+- [ ] Persist the extraction payload; advance the invoice to `EXTRACTED`
+- [ ] Wire the confidence verdict into the invoice's routing state
+
+---
+
 ## Definition of Done — acceptance criteria
 
 The nine criteria from spec §18. Each is a real test we must be able to run, not a checkbox we assert.
@@ -96,7 +106,8 @@ Questions that need an answer before the phase that depends on them. Resolved on
 
 | # | Question | Blocks | Status |
 | --- | --- | --- | --- |
-| Q-1 | Which vision model for extraction, and what confidence threshold rejects a payload? | Phase 2 | **open** — deliberately deferred, [ADR-0006](decisions/0006-v1-boundaries.md) |
+| Q-1a | What confidence threshold rejects a payload? | Phase 2 | **resolved** — tiered by field class, two bands, [ADR-0009](decisions/0009-confidence-thresholds.md) |
+| Q-1b | Which vision model for extraction? | Phase 2 | **open** — deferred by choice; fixture extractor stands in behind the same interface |
 | Q-2 | Real ERP target after the mock adapter (SAP / NetSuite / Dynamics / none)? | Phase 7 | **open** |
 | Q-3 | Is email ingestion in scope for v1? | Phase 1 | **resolved** — no. API + upload only, [ADR-0006](decisions/0006-v1-boundaries.md) |
 | Q-4 | Object storage: MinIO locally, or filesystem now and S3 later? | Phase 1 | **resolved** — MinIO, [ADR-0006](decisions/0006-v1-boundaries.md) |
@@ -110,7 +121,7 @@ Deliberately out of v1. Recorded so it is not mistaken for something we forgot.
 | --- | --- | --- |
 | Email (IMAP) ingestion source | post-v1 | [ADR-0006](decisions/0006-v1-boundaries.md) |
 | Batch/watched-folder ingestion source | post-v1 | [ADR-0006](decisions/0006-v1-boundaries.md) |
-| Real vision model selection | Phase 2 | [ADR-0006](decisions/0006-v1-boundaries.md) |
+| Real vision model selection | after the pipeline works end-to-end | [ADR-0006](decisions/0006-v1-boundaries.md); thresholds already set by [ADR-0009](decisions/0009-confidence-thresholds.md) |
 | pgvector retrieval | until a concrete retrieval need appears | spec §17 hedge |
 | Real ERP adapters | post-v1 | mock adapter first, spec §11 |
 
