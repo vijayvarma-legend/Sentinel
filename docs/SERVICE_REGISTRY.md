@@ -23,7 +23,7 @@ on its own?*
 
 | ID | Service | Module | Trust | Status | Responsibility |
 | --- | --- | --- | --- | --- | --- |
-| SVC-00 | Core domain | `sentinel.core` | `deterministic` | planned | Pydantic models, money type, correlation IDs, error taxonomy, settings |
+| SVC-00 | Core domain | `sentinel.core` | `deterministic` | in-progress | Pydantic models, money type, correlation IDs, error taxonomy, settings |
 | SVC-01 | Persistence | `sentinel.db` | `deterministic` | planned | PostgreSQL schema, migrations, repositories, least-privilege roles |
 | SVC-02 | Document store | `sentinel.storage` | `deterministic` | planned | Original document bytes, content-addressed, immutable |
 | SVC-03 | Orchestrator | `sentinel.graph` | `deterministic` | planned | LangGraph pipeline, state, checkpointing, retries, dead-letter |
@@ -153,6 +153,25 @@ on its own?*
 | **Measures** | extraction quality · decision quality · operational · AI economics · human interaction · business (STP, prevented overpayment) |
 | **Invariants** | Benchmark dataset is fixed and versioned. Any model/prompt/schema/policy change triggers a regression run. |
 | **Acceptance** | Swapping the extraction model produces a diffable accuracy report against the fixed benchmark. |
+
+---
+
+## Built so far
+
+### `sentinel.core.money` — the money type · `deterministic`
+
+The foundation every financial guarantee rests on, so it is the first thing built and the
+most heavily tested (34 cases).
+
+| | |
+| --- | --- |
+| `Money` | Immutable amount + ISO 4217 currency. Rejects `float` at construction. Refuses cross-currency add/subtract/compare. Refuses `Money * Money`. |
+| Rounding | `ROUND_HALF_UP` — the finance convention, deliberately not Python's default `ROUND_HALF_EVEN` |
+| Serialization | Amount serializes as a JSON **string**; a JSON number is an IEEE 754 double, which would reintroduce the exact problem the type prevents |
+| `percentage_variance` | Signed, positive when the supplier billed above the agreed figure. **Raises on a zero baseline** rather than returning 0 or infinity — an unapproved charge is its own exception category, not a variance |
+
+Known simplification: minor units are fixed at 2 decimal places. ISO 4217 has 0- and 3-decimal
+currencies (JPY, KWD); supporting them turns one constant into a per-currency lookup.
 
 ---
 
