@@ -5,6 +5,70 @@ Newest first. Decisions substantial enough to constrain future work get an ADR a
 
 ---
 
+## 2026-08-19 — Session 3: Phase 1 Foundation complete
+
+**Goal:** a working front door — document in, stored, recorded, auditable.
+
+### Done
+
+`sentinel.core` (SVC-00), `sentinel.storage` (SVC-02), `sentinel.db` (SVC-01),
+`sentinel.ingestion` (SVC-10), `sentinel.api` (SVC-05). **248 tests**, ruff + mypy strict
+clean. The live app was run against real PostgreSQL and MinIO end to end.
+
+### Worth remembering
+
+- **The transaction-boundary bug, and why the tests missed it.** Ingestion wrote the
+  dead-letter row and its audit event, then raised; the request-scoped session saw an
+  exception, rolled back, and erased both. The API answered 422 with a correlation ID
+  pointing at nothing — a documented rejection turned into a silent drop, which is precisely
+  what the dead-letter path exists to prevent.
+
+  It was invisible to the API tests because they override `get_session` with a fixture that
+  does not roll back on exception — **the tests had substituted away the behaviour that was
+  broken.** It surfaced only when the real app ran and `dead_letters` came back empty.
+  Fixed by committing on `IngestionError` (a recorded decision, not a fault) while genuine
+  faults still roll back. `tests/api/test_transaction_boundary.py` uses the real dependency
+  and reads back on a separate connection.
+
+  *A test that overrides the component under suspicion is not testing it.*
+
+- **Database-level enforcement.** Ten guarantees were checked by hand against the running
+  database before being captured as tests: audit append-only, idempotency uniqueness,
+  policy-rule immutability, damaged ⊆ received, success-names-its-transaction, one
+  correlation ID per invoice, and the deliberate *non*-constraint that lets duplicates in so
+  they can be assessed.
+
+- **`ErpTransactionRepository.claim` inserts rather than checking first.** The unique index
+  decides the race. A check-then-act version would pass every test and double-pay under
+  concurrency — the losing worker gets `IdempotencyConflict` carrying the winner's row.
+
+- Two smaller mistakes, both caught by tests: SQLAlchemy's unit of work is free to order a
+  bare-FK insert before its parent (no ORM relationship to order by), and `session.execute`
+  on raw SQL fires immediately rather than at flush.
+
+### Decisions taken
+
+[ADR-0007](decisions/0007-quantity-semantics.md) — `damaged_qty` is a subset of
+`received_qty`; `accepted_qty = received − damaged` is the basis for both matching and price
+variance. The spec never states the relationship and §15 reads either way.
+
+[ADR-0008](decisions/0008-composition-root-trust-class.md) — a `composition` trust class for
+`sentinel.api`. The wiring layer must depend on every class including `llm`, and neither
+existing class fits honestly. The exemption is real, so exactly one such module is allowed,
+enforced by the registry test.
+
+### Next session — Phase 2 Extraction
+
+1. The `Extractor` protocol and the fixture-backed implementation (ADR-0006).
+2. Confidence gating: reject rather than pass a low-confidence payload downstream (spec §4.2).
+3. Persist the extraction payload; advance the invoice to `EXTRACTED`.
+4. Then Phase 3 validation — where the golden path finally computes real numbers.
+
+**Q-1 becomes live at Phase 2's end:** which vision model, and what confidence threshold
+rejects a payload.
+
+---
+
 ## 2026-08-19 — Session 2: Phase 0 complete
 
 **Goal:** close out project setup and make DoD-9 a build failure rather than a promise.
